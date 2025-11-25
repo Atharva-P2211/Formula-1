@@ -1,7 +1,8 @@
 import pandas as pd
 from bs4 import BeautifulSoup
 import requests
-import time
+import re
+from difflib import get_close_matches
 
 #Race name mapping
 RACE_MAPPING = { 
@@ -80,6 +81,89 @@ def normalize_race_name(user_input, year=None):
     words_to_remove = ['grand prix', 'gp', 'formula 1', 'f1', 'the', 'race']
     for word in words_to_remove:
         normalized = normalized.replace(word, '')
+        
+    # Clean up extra spaces
+    normalized = ' '.join(normalized.split())
+    
+    return normalized
+
+def find_race_url(user_input):
+    # Extract year
+    year = extract_year(user_input)
+    
+    if not year:
+        print("No year found in input. Please include a year (e.g., 2023, 2024)")
+        return None
+    
+    
+        # Normalize race name
+    race_name = normalize_race_name(user_input, year)
+    
+    if not race_name:
+        print("Could not identify race name. Please try again.")
+        return None
+    
+    # Try exact match first
+    if race_name in RACE_MAPPING:
+        race_url = RACE_MAPPING[race_name]
+        return f"https://pitwall.app/races/{year}-{race_url}"
+    
+    
+    
+        # Try fuzzy matching
+    close_matches = get_close_matches(race_name, RACE_MAPPING.keys(), n=3, cutoff=0.6)
+    
+    if close_matches:
+        print(f"\n Did you mean one of these?")
+        for i, match in enumerate(close_matches, 1):
+            print(f"{i}. {match.title()} {year}")
+        
+        choice = input("\nEnter number (or 0 to cancel): ").strip()
+        
+        if choice.isdigit() and 1 <= int(choice) <= len(close_matches):
+            selected_race = close_matches[int(choice) - 1]
+            race_url = RACE_MAPPING[selected_race]
+            return f"https://pitwall.app/races/{year}-{race_url}"
+    
+    print(f"Could not find race matching '{race_name}' in {year}")
+    return None
+
+def scrape_race_results(url):
+    """Scrape race results from the given URL"""
+    print(f"\n Fetching data from: {url}")
+    
+    try:
+        headers = {
+            'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36'
+        }
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.text, 'html.parser')
+        
+        print("Data fetched successfully!")
+        print("Note: You need to implement the actual HTML parsing based on the website structure")
+        
+        # Placeholder data structure
+        data = {
+            'Position': [],
+            'Driver': [],
+            'Constructor': [],
+            'Time/Retired': [],
+            'Grid': [],
+            'Laps': [],
+            'Points': []
+        }
+        
+        return data
+        
+    except requests.exceptions.RequestException as e:
+        print(f"Error fetching data: {e}")
+        return None
+
+
+
+
     
 
  
