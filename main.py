@@ -4,8 +4,6 @@ import pandas as pd
 import re
 from difflib import get_close_matches
 from datetime import datetime
-import json
-import time
 
 # Race name mapping 
 RACE_MAPPING = {
